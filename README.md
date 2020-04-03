@@ -7,7 +7,7 @@
 
 #### 1、安装依赖
 ```shell
-composer require yesccx/think-validate
+composer require yesccx/think-validate:2.0.3
 ```
 
 #### 2、初始化配置
