@@ -10,11 +10,11 @@
 // +----------------------------------------------------------------------
 declare (strict_types = 1);
 
-namespace think\validate;
+namespace Yesccx\ThinkValidate\Validate;
 
 /**
  * Class ValidateRule
- * @package think\validate
+ * @package Yesccx\Rule
  * @method ValidateRule confirm(mixed $rule, string $msg = '') static 验证是否和某个字段的值一致
  * @method ValidateRule different(mixed $rule, string $msg = '') static 验证是否和某个字段的值是否不同
  * @method ValidateRule egt(mixed $rule, string $msg = '') static 验证是否大于等于某个值
@@ -72,8 +72,7 @@ namespace think\validate;
  * @method ValidateRule requireWith(mixed $rule, string $msg = '') static 验证某个字段有值的情况下必须
  * @method ValidateRule must(mixed $rule = null, string $msg = '') static 必须验证
  */
-class ValidateRule
-{
+class ValidateRule {
     // 验证字段的名称
     protected $title;
 
@@ -91,8 +90,7 @@ class ValidateRule
      * @param  string    $msg   提示信息
      * @return $this
      */
-    protected function addItem(string $name, $rule = null, string $msg = '')
-    {
+    protected function addItem(string $name, $rule = null, string $msg = '') {
         if ($rule || 0 === $rule) {
             $this->rule[$name] = $rule;
         } else {
@@ -119,8 +117,7 @@ class ValidateRule
      * @access public
      * @return string
      */
-    public function getTitle(): string
-    {
+    public function getTitle(): string {
         return $this->title ?: '';
     }
 
@@ -139,15 +136,13 @@ class ValidateRule
      * @access public
      * @return $this
      */
-    public function title(string $title)
-    {
+    public function title(string $title) {
         $this->title = $title;
 
         return $this;
     }
 
-    public function __call($method, $args)
-    {
+    public function __call($method, $args) {
         if ('is' == strtolower(substr($method, 0, 2))) {
             $method = substr($method, 2);
         }
@@ -157,8 +152,7 @@ class ValidateRule
         return call_user_func_array([$this, 'addItem'], $args);
     }
 
-    public static function __callStatic($method, $args)
-    {
+    public static function __callStatic($method, $args) {
         $rule = new static();
 
         if ('is' == strtolower(substr($method, 0, 2))) {

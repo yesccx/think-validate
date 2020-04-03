@@ -9,23 +9,23 @@
 // | Author: liu21st <liu21st@gmail.com>
 // +----------------------------------------------------------------------
 
-namespace think\facade;
+namespace Yesccx\ThinkValidate\Facade;
 
-use think\Facade;
+use Yesccx\ThinkValidate\Validate as ThinkValidate;
 
 /**
- * @see \think\Validate
- * @mixin \think\Validate
- * @method \think\Validate rule(mixed $name, mixed $rule = '') static 添加字段验证规则
+ * @see \Yesccx\ThinkValidate\Validate
+ * @mixin \Yesccx\ThinkValidate\Validate
+ * @method \Yesccx\ThinkValidate\Validate rule(mixed $name, mixed $rule = '') static 添加字段验证规则
  * @method void extend(string $type, callable $callback = null, string $message='') static 注册扩展验证（类型）规则
  * @method void setTypeMsg(mixed $type, string $msg = null) static 设置验证规则的默认提示信息
- * @method \think\Validate message(mixed $name, string $message = '') static 设置提示信息
- * @method \think\Validate scene(string $name) static 设置验证场景
+ * @method \Yesccx\ThinkValidate\Validate message(mixed $name, string $message = '') static 设置提示信息
+ * @method \Yesccx\ThinkValidate\Validate scene(string $name) static 设置验证场景
  * @method bool hasScene(string $name) static 判断是否存在某个验证场景
- * @method \think\Validate batch(bool $batch = true) static 设置批量验证
- * @method \think\Validate only(array $fields) static 指定需要验证的字段列表
- * @method \think\Validate remove(mixed $field, mixed $rule = true) static 移除某个字段的验证规则
- * @method \think\Validate append(mixed $field, mixed $rule = null) static 追加某个字段的验证规则
+ * @method \Yesccx\ThinkValidate\Validate batch(bool $batch = true) static 设置批量验证
+ * @method \Yesccx\ThinkValidate\Validate only(array $fields) static 指定需要验证的字段列表
+ * @method \Yesccx\ThinkValidate\Validate remove(mixed $field, mixed $rule = true) static 移除某个字段的验证规则
+ * @method \Yesccx\ThinkValidate\Validate append(mixed $field, mixed $rule = null) static 追加某个字段的验证规则
  * @method bool confirm(mixed $value, mixed $rule, array $data = [], string $field = '') static 验证是否和某个字段的值一致
  * @method bool different(mixed $value, mixed $rule, array $data = []) static 验证是否和某个字段的值是否不同
  * @method bool egt(mixed $value, mixed $rule, array $data = []) static 验证是否大于等于某个值
@@ -60,15 +60,15 @@ use think\Facade;
  * @method bool checkRule(mixed $data, mixed $rules = []) static 数据手动验证
  * @method mixed getError() static 获取错误信息
  */
-class Validate extends Facade
-{
+class Validate {
+
     /**
-     * 获取当前Facade对应类名（或者已经绑定的容器对象标识）
-     * @access protected
-     * @return string
+     * Handle dynamic static method calls into the method.
+     *
+     * @param string $method
+     * @param array $parameters
      */
-    protected static function getFacadeClass()
-    {
-        return 'think\Validate';
+    public static function __callStatic($method, $parameters) {
+        return ThinkValidate::make()->{$method}(...$parameters);
     }
 }

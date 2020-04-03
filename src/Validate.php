@@ -10,17 +10,19 @@
 // +----------------------------------------------------------------------
 declare (strict_types = 1);
 
-namespace think;
+namespace Yesccx\ThinkValidate;
 
-use Closure;
-use think\exception\ValidateException;
-use think\validate\ValidateRule;
+use Yesccx\ThinkValidate\Validate\ValidateRule;
 
 /**
  * 数据验证类
  */
-class Validate
-{
+class Validate {
+
+    public function __construct() {
+        $this->failExceptionClass = config('think-validate.validate_exception', '');
+    }
+
     /**
      * 自定义验证类型
      * @var array
@@ -165,10 +167,11 @@ class Validate
     protected $batch = false;
 
     /**
-     * 验证失败是否抛出异常
-     * @var bool
+     * 验证失败时抛出的异常
+     *
+     * @var string
      */
-    protected $failException = false;
+    protected $failExceptionClass;
 
     /**
      * 场景需要验证的规则
@@ -201,8 +204,7 @@ class Validate
      * @param  mixed         $rule  验证规则或者字段描述信息
      * @return $this
      */
-    public function rule($name, $rule = '')
-    {
+    public function rule($name, $rule = '') {
         if (is_array($name)) {
             $this->rule = $name + $this->rule;
             if (is_array($rule)) {
@@ -223,8 +225,7 @@ class Validate
      * @param  string   $message  验证失败提示信息
      * @return $this
      */
-    public function extend(string $type, callable $callback = null, string $message = null)
-    {
+    public function extend(string $type, callable $callback = null, string $message = null) {
         $this->type[$type] = $callback;
 
         if ($message) {
@@ -241,8 +242,7 @@ class Validate
      * @param  string       $msg  验证提示信息
      * @return void
      */
-    public function setTypeMsg($type, string $msg = null): void
-    {
+    public function setTypeMsg($type, string $msg = null): void {
         if (is_array($type)) {
             $this->typeMsg = array_merge($this->typeMsg, $type);
         } else {
@@ -256,8 +256,7 @@ class Validate
      * @param  array $message 错误信息
      * @return Validate
      */
-    public function message(array $message)
-    {
+    public function message(array $message) {
         $this->message = array_merge($this->message, $message);
 
         return $this;
@@ -269,8 +268,7 @@ class Validate
      * @param  string $name  场景名
      * @return $this
      */
-    public function scene(string $name)
-    {
+    public function scene(string $name) {
         // 设置当前场景
         $this->currentScene = $name;
 
@@ -283,8 +281,7 @@ class Validate
      * @param  string $name 场景名
      * @return bool
      */
-    public function hasScene(string $name): bool
-    {
+    public function hasScene(string $name): bool {
         return isset($this->scene[$name]) || method_exists($this, 'scene' . $name);
     }
 
@@ -294,8 +291,7 @@ class Validate
      * @param  bool $batch  是否批量验证
      * @return $this
      */
-    public function batch(bool $batch = true)
-    {
+    public function batch(bool $batch = true) {
         $this->batch = $batch;
 
         return $this;
@@ -304,12 +300,11 @@ class Validate
     /**
      * 设置验证失败后是否抛出异常
      * @access protected
-     * @param  bool $fail 是否抛出异常
+     * @param  string $clazz 异常class
      * @return $this
      */
-    public function failException(bool $fail = true)
-    {
-        $this->failException = $fail;
+    public function failException(string $clazz) {
+        $this->failExceptionClass = $clazz;
 
         return $this;
     }
@@ -320,8 +315,7 @@ class Validate
      * @param  array $fields  字段名
      * @return $this
      */
-    public function only(array $fields)
-    {
+    public function only(array $fields) {
         $this->only = $fields;
 
         return $this;
@@ -334,8 +328,7 @@ class Validate
      * @param  mixed        $rule   验证规则 true 移除所有规则
      * @return $this
      */
-    public function remove($field, $rule = null)
-    {
+    public function remove($field, $rule = null) {
         if (is_array($field)) {
             foreach ($field as $key => $rule) {
                 if (is_int($key)) {
@@ -362,8 +355,7 @@ class Validate
      * @param  mixed        $rule   验证规则
      * @return $this
      */
-    public function append($field, $rule = null)
-    {
+    public function append($field, $rule = null) {
         if (is_array($field)) {
             foreach ($field as $key => $rule) {
                 $this->append($key, $rule);
@@ -386,8 +378,7 @@ class Validate
      * @param  array $rules  验证规则
      * @return bool
      */
-    public function check(array $data, array $rules = []): bool
-    {
+    public function check(array $data, array $rules = []): bool {
         $this->error = [];
 
         if (empty($rules)) {
@@ -441,8 +432,8 @@ class Validate
                     } else {
                         $this->error[$key] = $result;
                     }
-                } elseif ($this->failException) {
-                    throw new ValidateException($result);
+                } elseif ($this->failExceptionClass) {
+                    throw new $this->failExceptionClass($result);
                 } else {
                     $this->error = $result;
                     return false;
@@ -451,8 +442,8 @@ class Validate
         }
 
         if (!empty($this->error)) {
-            if ($this->failException) {
-                throw new ValidateException($this->error);
+            if ($this->failExceptionClass) {
+                throw new $this->failExceptionClass($this->error);
             }
             return false;
         }
@@ -467,8 +458,7 @@ class Validate
      * @param  mixed $rules 验证规则
      * @return bool
      */
-    public function checkRule($value, $rules): bool
-    {
+    public function checkRule($value, $rules): bool {
         if ($rules instanceof \Closure) {
             return call_user_func_array($rules, [$value]);
         } elseif ($rules instanceof ValidateRule) {
@@ -490,8 +480,8 @@ class Validate
             }
 
             if (true !== $result) {
-                if ($this->failException) {
-                    throw new ValidateException($result);
+                if ($this->failExceptionClass) {
+                    throw new $this->failExceptionClass($result);
                 }
 
                 return $result;
@@ -512,8 +502,7 @@ class Validate
      * @param  array  $msg  提示信息
      * @return mixed
      */
-    protected function checkItem(string $field, $value, $rules, $data, string $title = '', array $msg = [])
-    {
+    protected function checkItem(string $field, $value, $rules, $data, string $title = '', array $msg = []) {
         if (isset($this->remove[$field]) && true === $this->remove[$field] && empty($this->append[$field])) {
             // 字段已经移除 无需验证
             return true;
@@ -533,7 +522,7 @@ class Validate
         foreach ($rules as $key => $rule) {
             if ($rule instanceof \Closure) {
                 $result = call_user_func_array($rule, [$value, $data]);
-                $info   = is_numeric($key) ? '' : $key;
+                $info = is_numeric($key) ? '' : $key;
             } else {
                 // 判断验证类型
                 list($type, $rule, $info) = $this->getValidateType($key, $rule);
@@ -624,8 +613,7 @@ class Validate
      * @param  string $field 字段名
      * @return bool
      */
-    public function confirm($value, $rule, array $data = [], string $field = ''): bool
-    {
+    public function confirm($value, $rule, array $data = [], string $field = ''): bool {
         if ('' == $rule) {
             if (strpos($field, '_confirm')) {
                 $rule = strstr($field, '_confirm', true);
@@ -645,8 +633,7 @@ class Validate
      * @param  array $data  数据
      * @return bool
      */
-    public function different($value, $rule, array $data = []): bool
-    {
+    public function different($value, $rule, array $data = []): bool {
         return $this->getDataValue($data, $rule) != $value;
     }
 
@@ -658,8 +645,7 @@ class Validate
      * @param  array $data  数据
      * @return bool
      */
-    public function egt($value, $rule, array $data = []): bool
-    {
+    public function egt($value, $rule, array $data = []): bool {
         return $value >= $this->getDataValue($data, $rule);
     }
 
@@ -671,8 +657,7 @@ class Validate
      * @param  array $data  数据
      * @return bool
      */
-    public function gt($value, $rule, array $data = []): bool
-    {
+    public function gt($value, $rule, array $data = []): bool {
         return $value > $this->getDataValue($data, $rule);
     }
 
@@ -684,8 +669,7 @@ class Validate
      * @param  array $data  数据
      * @return bool
      */
-    public function elt($value, $rule, array $data = []): bool
-    {
+    public function elt($value, $rule, array $data = []): bool {
         return $value <= $this->getDataValue($data, $rule);
     }
 
@@ -697,8 +681,7 @@ class Validate
      * @param  array $data  数据
      * @return bool
      */
-    public function lt($value, $rule, array $data = []): bool
-    {
+    public function lt($value, $rule, array $data = []): bool {
         return $value < $this->getDataValue($data, $rule);
     }
 
@@ -709,8 +692,7 @@ class Validate
      * @param  mixed $rule  验证规则
      * @return bool
      */
-    public function eq($value, $rule): bool
-    {
+    public function eq($value, $rule): bool {
         return $value == $rule;
     }
 
@@ -721,8 +703,7 @@ class Validate
      * @param  mixed $rule  验证规则
      * @return bool
      */
-    public function must($value, $rule = null): bool
-    {
+    public function must($value, $rule = null): bool {
         return !empty($value) || '0' == $value;
     }
 
@@ -734,69 +715,67 @@ class Validate
      * @param  array $data  数据
      * @return bool
      */
-    public function is($value, $rule, array $data = []): bool
-    {
+    public function is($value, $rule, array $data = []): bool {
         switch ($this->parseName($rule, 1, false)) {
-            case 'require':
-                // 必须
-                $result = !empty($value) || '0' == $value;
-                break;
-            case 'accepted':
-                // 接受
-                $result = in_array($value, ['1', 'on', 'yes']);
-                break;
-            case 'date':
-                // 是否是一个有效日期
-                $result = false !== strtotime($value);
-                break;
-            case 'activeUrl':
-                // 是否为有效的网址
-                $result = checkdnsrr($value);
-                break;
-            case 'boolean':
-            case 'bool':
-                // 是否为布尔值
-                $result = in_array($value, [true, false, 0, 1, '0', '1'], true);
-                break;
-            case 'number':
-                $result = ctype_digit((string) $value);
-                break;
-            case 'alphaNum':
-                $result = ctype_alnum($value);
-                break;
-            case 'array':
-                // 是否为数组
-                $result = is_array($value);
-                break;
-            case 'file':
-                $result = $value instanceof File;
-                break;
-            case 'image':
-                $result = $value instanceof File && in_array($this->getImageType($value->getRealPath()), [1, 2, 3, 6]);
-                break;
-            default:
-                if (isset($this->type[$rule])) {
-                    // 注册的验证规则
-                    $result = call_user_func_array($this->type[$rule], [$value]);
-                } elseif (function_exists('ctype_' . $rule)) {
-                    // ctype验证规则
-                    $ctypeFun = 'ctype_' . $rule;
-                    $result   = $ctypeFun($value);
-                } elseif (isset($this->filter[$rule])) {
-                    // Filter_var验证规则
-                    $result = $this->filter($value, $this->filter[$rule]);
-                } else {
-                    // 正则验证
-                    $result = $this->regex($value, $rule);
-                }
+        case 'require':
+            // 必须
+            $result = !empty($value) || '0' == $value;
+            break;
+        case 'accepted':
+            // 接受
+            $result = in_array($value, ['1', 'on', 'yes']);
+            break;
+        case 'date':
+            // 是否是一个有效日期
+            $result = false !== strtotime($value);
+            break;
+        case 'activeUrl':
+            // 是否为有效的网址
+            $result = checkdnsrr($value);
+            break;
+        case 'boolean':
+        case 'bool':
+            // 是否为布尔值
+            $result = in_array($value, [true, false, 0, 1, '0', '1'], true);
+            break;
+        case 'number':
+            $result = ctype_digit((string) $value);
+            break;
+        case 'alphaNum':
+            $result = ctype_alnum($value);
+            break;
+        case 'array':
+            // 是否为数组
+            $result = is_array($value);
+            break;
+        case 'file':
+            $result = $value instanceof File;
+            break;
+        case 'image':
+            $result = $value instanceof File && in_array($this->getImageType($value->getRealPath()), [1, 2, 3, 6]);
+            break;
+        default:
+            if (isset($this->type[$rule])) {
+                // 注册的验证规则
+                $result = call_user_func_array($this->type[$rule], [$value]);
+            } elseif (function_exists('ctype_' . $rule)) {
+                // ctype验证规则
+                $ctypeFun = 'ctype_' . $rule;
+                $result = $ctypeFun($value);
+            } elseif (isset($this->filter[$rule])) {
+                // Filter_var验证规则
+                $result = $this->filter($value, $this->filter[$rule]);
+            } else {
+                // 正则验证
+                $result = $this->regex($value, $rule);
+            }
         }
 
         return $result;
     }
 
     // 判断图像类型
-    protected function getImageType($image)
-    {
+    protected function getImageType($image) {
         if (function_exists('exif_imagetype')) {
             return exif_imagetype($image);
         }
@@ -816,8 +795,7 @@ class Validate
      * @param  mixed $rule  验证规则
      * @return bool
      */
-    public function activeUrl(string $value, string $rule = 'MX'): bool
-    {
+    public function activeUrl(string $value, string $rule = 'MX'): bool {
         if (!in_array($rule, ['A', 'MX', 'NS', 'SOA', 'PTR', 'CNAME', 'AAAA', 'A6', 'SRV', 'NAPTR', 'TXT', 'ANY'])) {
             $rule = 'MX';
         }
@@ -832,8 +810,7 @@ class Validate
      * @param  mixed $rule  验证规则 ipv4 ipv6
      * @return bool
      */
-    public function ip($value, string $rule = 'ipv4'): bool
-    {
+    public function ip($value, string $rule = 'ipv4'): bool {
         if (!in_array($rule, ['ipv4', 'ipv6'])) {
             $rule = 'ipv4';
         }
@@ -848,8 +825,7 @@ class Validate
      * @param  mixed $rule  验证规则
      * @return bool
      */
-    public function fileExt($file, $rule): bool
-    {
+    public function fileExt($file, $rule): bool {
         if (is_array($file)) {
             foreach ($file as $item) {
                 if (!($item instanceof File) || !$item->checkExt($rule)) {
@@ -871,8 +847,7 @@ class Validate
      * @param  mixed $rule  验证规则
      * @return bool
      */
-    public function fileMime($file, $rule): bool
-    {
+    public function fileMime($file, $rule): bool {
         if (is_array($file)) {
             foreach ($file as $item) {
                 if (!($item instanceof File) || !$item->checkMime($rule)) {
@@ -894,8 +869,7 @@ class Validate
      * @param  mixed $rule  验证规则
      * @return bool
      */
-    public function fileSize($file, $rule): bool
-    {
+    public function fileSize($file, $rule): bool {
         if (is_array($file)) {
             foreach ($file as $item) {
                 if (!($item instanceof File) || !$item->checkSize($rule)) {
@@ -917,8 +891,7 @@ class Validate
      * @param  mixed $rule  验证规则
      * @return bool
      */
-    public function image($file, $rule): bool
-    {
+    public function image($file, $rule): bool {
         if (!($file instanceof File)) {
             return false;
         }
@@ -955,8 +928,7 @@ class Validate
      * @param  mixed $rule  验证规则
      * @return bool
      */
-    public function dateFormat($value, $rule): bool
-    {
+    public function dateFormat($value, $rule): bool {
         $info = date_parse_from_format($rule, $value);
         return 0 == $info['warning_count'] && 0 == $info['error_count'];
     }
@@ -968,13 +940,12 @@ class Validate
      * @param  mixed $rule  验证规则
      * @return bool
      */
-    public function filter($value, $rule): bool
-    {
+    public function filter($value, $rule): bool {
         if (is_string($rule) && strpos($rule, ',')) {
             list($rule, $param) = explode(',', $rule);
         } elseif (is_array($rule)) {
             $param = $rule[1] ?? null;
-            $rule  = $rule[0];
+            $rule = $rule[0];
         } else {
             $param = null;
         }
@@ -990,8 +961,7 @@ class Validate
      * @param  array $data  数据
      * @return bool
      */
-    public function requireIf($value, $rule, array $data = []): bool
-    {
+    public function requireIf($value, $rule, array $data = []): bool {
         list($field, $val) = explode(',', $rule);
 
         if ($this->getDataValue($data, $field) == $val) {
@@ -1009,8 +979,7 @@ class Validate
      * @param  array $data  数据
      * @return bool
      */
-    public function requireCallback($value, $rule, array $data = []): bool
-    {
+    public function requireCallback($value, $rule, array $data = []): bool {
         $result = call_user_func_array([$this, $rule], [$value, $data]);
 
         if ($result) {
@@ -1028,8 +997,7 @@ class Validate
      * @param  array $data  数据
      * @return bool
      */
-    public function requireWith($value, $rule, array $data = []): bool
-    {
+    public function requireWith($value, $rule, array $data = []): bool {
         $val = $this->getDataValue($data, $rule);
 
         if (!empty($val)) {
@@ -1046,8 +1014,7 @@ class Validate
      * @param  mixed $rule  验证规则
      * @return bool
      */
-    public function in($value, $rule): bool
-    {
+    public function in($value, $rule): bool {
         return in_array($value, is_array($rule) ? $rule : explode(',', $rule));
     }
 
@@ -1058,8 +1025,7 @@ class Validate
      * @param  mixed $rule  验证规则
      * @return bool
      */
-    public function notIn($value, $rule): bool
-    {
+    public function notIn($value, $rule): bool {
         return !in_array($value, is_array($rule) ? $rule : explode(',', $rule));
     }
 
@@ -1070,8 +1036,7 @@ class Validate
      * @param  mixed $rule  验证规则
      * @return bool
      */
-    public function between($value, $rule): bool
-    {
+    public function between($value, $rule): bool {
         if (is_string($rule)) {
             $rule = explode(',', $rule);
         }
@@ -1087,8 +1052,7 @@ class Validate
      * @param  mixed $rule  验证规则
      * @return bool
      */
-    public function notBetween($value, $rule): bool
-    {
+    public function notBetween($value, $rule): bool {
         if (is_string($rule)) {
             $rule = explode(',', $rule);
         }
@@ -1104,8 +1068,7 @@ class Validate
      * @param  mixed $rule  验证规则
      * @return bool
      */
-    public function length($value, $rule): bool
-    {
+    public function length($value, $rule): bool {
         if (is_array($value)) {
             $length = count($value);
         } elseif ($value instanceof File) {
@@ -1131,8 +1094,7 @@ class Validate
      * @param  mixed $rule  验证规则
      * @return bool
      */
-    public function max($value, $rule): bool
-    {
+    public function max($value, $rule): bool {
         if (is_array($value)) {
             $length = count($value);
         } elseif ($value instanceof File) {
@@ -1151,8 +1113,7 @@ class Validate
      * @param  mixed $rule  验证规则
      * @return bool
      */
-    public function min($value, $rule): bool
-    {
+    public function min($value, $rule): bool {
         if (is_array($value)) {
             $length = count($value);
         } elseif ($value instanceof File) {
@@ -1172,8 +1133,7 @@ class Validate
      * @param  array $data  数据
      * @return bool
      */
-    public function after($value, $rule, array $data = []): bool
-    {
+    public function after($value, $rule, array $data = []): bool {
         return strtotime($value) >= strtotime($rule);
     }
 
@@ -1185,8 +1145,7 @@ class Validate
      * @param  array $data  数据
      * @return bool
      */
-    public function before($value, $rule, array $data = []): bool
-    {
+    public function before($value, $rule, array $data = []): bool {
         return strtotime($value) <= strtotime($rule);
     }
 
@@ -1198,8 +1157,7 @@ class Validate
      * @param  array $data  数据
      * @return bool
      */
-    public function afterWith($value, $rule, array $data = []): bool
-    {
+    public function afterWith($value, $rule, array $data = []): bool {
         $rule = $this->getDataValue($data, $rule);
         return !is_null($rule) && strtotime($value) >= strtotime($rule);
     }
@@ -1212,8 +1170,7 @@ class Validate
      * @param  array $data  数据
      * @return bool
      */
-    public function beforeWith($value, $rule, array $data = []): bool
-    {
+    public function beforeWith($value, $rule, array $data = []): bool {
         $rule = $this->getDataValue($data, $rule);
         return !is_null($rule) && strtotime($value) <= strtotime($rule);
     }
@@ -1225,8 +1182,7 @@ class Validate
      * @param  mixed $rule  验证规则
      * @return bool
      */
-    public function expire($value, $rule): bool
-    {
+    public function expire($value, $rule): bool {
         if (is_string($rule)) {
             $rule = explode(',', $rule);
         }
@@ -1251,8 +1207,7 @@ class Validate
      * @param  mixed $rule  验证规则
      * @return bool
      */
-    public function allowIp($value, $rule): bool
-    {
+    public function allowIp($value, $rule): bool {
         return in_array($value, is_array($rule) ? $rule : explode(',', $rule));
     }
 
@@ -1263,8 +1218,7 @@ class Validate
      * @param  mixed $rule  验证规则
      * @return bool
      */
-    public function denyIp($value, $rule): bool
-    {
+    public function denyIp($value, $rule): bool {
         return !in_array($value, is_array($rule) ? $rule : explode(',', $rule));
     }
 
@@ -1275,8 +1229,7 @@ class Validate
      * @param  mixed $rule  验证规则 正则规则或者预定义正则名
      * @return bool
      */
-    public function regex($value, $rule): bool
-    {
+    public function regex($value, $rule): bool {
         if (isset($this->regex[$rule])) {
             $rule = $this->regex[$rule];
         } elseif (isset($this->defaultRegex[$rule])) {
@@ -1292,8 +1245,7 @@ class Validate
     }
 
     // 获取错误信息
-    public function getError()
-    {
+    public function getError() {
         return $this->error;
     }
 
@@ -1304,8 +1256,7 @@ class Validate
      * @param  string $key  数据标识 支持二维
      * @return mixed
      */
-    protected function getDataValue(array $data, $key)
-    {
+    protected function getDataValue(array $data, $key) {
         if (is_numeric($key)) {
             $value = $key;
         } elseif (strpos($key, '.')) {
@@ -1333,8 +1284,7 @@ class Validate
      * @param  mixed  $rule  验证规则数据
      * @return string
      */
-    protected function getRuleMsg(string $attribute, string $title, string $type, $rule): string
-    {
+    protected function getRuleMsg(string $attribute, string $title, string $type, $rule): string {
         if (isset($this->message[$attribute . '.' . $type])) {
             $msg = $this->message[$attribute . '.' . $type];
         } elseif (isset($this->message[$attribute][$type])) {
@@ -1380,8 +1330,7 @@ class Validate
      * @param  string $scene  验证场景
      * @return void
      */
-    protected function getScene(string $scene): void
-    {
+    protected function getScene(string $scene): void {
         $this->only = $this->append = $this->remove = [];
 
         if (method_exists($this, 'scene' . $scene)) {
@@ -1401,8 +1350,7 @@ class Validate
      * @param bool    $ucfirst 首字母是否大写（驼峰规则）
      * @return string
      */
-    protected function parseName(string $name = null, int $type = 0, bool $ucfirst = true): string
-    {
+    protected function parseName(string $name = null, int $type = 0, bool $ucfirst = true): string {
         if ($type) {
             $name = preg_replace_callback('/_([a-zA-Z])/', function ($match) {
                 return strtoupper($match[1]);
@@ -1420,8 +1368,7 @@ class Validate
      * @param  array $args  调用参数
      * @return bool
      */
-    public function __call($method, $args)
-    {
+    public function __call($method, $args) {
         if ('is' == strtolower(substr($method, 0, 2))) {
             $method = substr($method, 2);
         }
@@ -1429,5 +1376,14 @@ class Validate
         array_push($args, lcfirst($method));
 
         return call_user_func_array([$this, 'is'], $args);
+    }
+
+    /**
+     * 创建短生命周期的对象
+     *
+     * @return static
+     */
+    public static function make() {
+        return new static;
     }
 }
