@@ -1386,4 +1386,15 @@ class Validate {
     public static function make() {
         return new static;
     }
+
+    /**
+     * 场景验证
+     *
+     * @param array $data 数据
+     * @param string $scene 场景名
+     * @return bool
+     */
+    public static function sceneCheck(array $data, string $scene) {
+        return self::make()->scene($scene)->check($data);
+    }
 }
